@@ -15,20 +15,36 @@ const symbolImages = import.meta.glob("../backend/images/EN-symbols/*.svg", {
   import: "default",
 }) as Record<string, string>;
 
-const ITEMS_PER_PAGE = 12;
-
 const ImageTalk = () => {
   const [selectedSymbols, setSelectedSymbols] = useState<Symbol[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
 
-  const totalPages = Math.ceil(symbolsIndex.length / ITEMS_PER_PAGE);
+  const totalPages = Math.ceil(symbolsIndex.length / itemsPerPage);
 
-  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+  const startIndex = (currentPage - 1) * itemsPerPage;
 
   const currentSymbols = symbolsIndex.slice(
     startIndex,
-    startIndex + ITEMS_PER_PAGE,
+    startIndex + itemsPerPage,
   );
+
+  const handleItemsPerPageChange = (value: number) => {
+    setItemsPerPage(value);
+    setCurrentPage(1);
+  };
+
+  const visiblePages = () => {
+    const pages: number[] = [];
+    const start = Math.max(1, currentPage - 2);
+    const end = Math.min(totalPages, currentPage + 2);
+
+    for (let i = start; i <= end; i++) {
+      pages.push(i);
+    }
+
+    return pages;
+  };
 
   const toggleSymbol = (symbol: Symbol) => {
     setSelectedSymbols((previous) => {
@@ -43,8 +59,6 @@ const ImageTalk = () => {
   };
 
   const sentence = selectedSymbols.map((symbol) => symbol.label).join(" ");
-  const firstPageButton = Math.max(1, currentPage - 2);
-  const lastPageButton = Math.min(totalPages, currentPage + 2);
 
   return (
     <main className="min-h-screen bg-slate-950 p-6">
@@ -115,56 +129,96 @@ const ImageTalk = () => {
         })}
       </div>
 
-      {/* Pagination */}
-      <div className="mt-8 flex flex-wrap items-center justify-center gap-2">
-        <button
-          type="button"
-          onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
-          disabled={currentPage === 1}
-          className="rounded-lg border border-slate-700 px-4 py-2 text-white disabled:cursor-not-allowed disabled:opacity-40"
-        >
-          Previous
-        </button>
+      {/* Professional Pagination */}
+      <nav
+        aria-label="Symbol page navigation"
+        className="mt-10 flex flex-col items-center justify-between gap-5 rounded-2xl border border-slate-700 bg-slate-900/80 p-4 shadow-lg sm:flex-row"
+      >
+        {/* Page Information */}
+        <div className="text-sm text-slate-400">
+          Showing{" "}
+          <span className="font-semibold text-white">
+            {symbolsIndex.length === 0 ? 0 : startIndex + 1}
+          </span>
+          {" - "}
+          <span className="font-semibold text-white">
+            {Math.min(startIndex + itemsPerPage, symbolsIndex.length)}
+          </span>
+          {" of "}
+          <span className="font-semibold text-white">
+            {symbolsIndex.length}
+          </span>
+          {" symbols"}
+        </div>
 
-        {Array.from(
-          { length: lastPageButton - firstPageButton + 1 },
-          (_, index) => firstPageButton + index,
-        ).map((page) => (
+        {/* Page Controls */}
+        <ul className="flex items-center gap-1">
+          {/* Previous */}
+          <li>
             <button
-              key={page}
               type="button"
-              onClick={() => setCurrentPage(page)}
-              aria-current={currentPage === page ? "page" : undefined}
-              className={`rounded-lg px-4 py-2 ${
-                currentPage === page
-                  ? "bg-blue-600 text-white"
-                  : "border border-slate-700 text-white hover:bg-slate-800"
-              }`}
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              disabled={currentPage === 1}
+              className="flex h-9 items-center justify-center rounded-l-lg border border-slate-700 bg-slate-800 px-3 text-sm font-medium text-slate-300 transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-30"
             >
-              {page}
+              Previous
             </button>
-        ))}
+          </li>
 
-        <button
-          type="button"
-          onClick={() =>
-            setCurrentPage((page) => Math.min(totalPages, page + 1))
-          }
-          disabled={currentPage === totalPages}
-          className="rounded-lg border border-slate-700 px-4 py-2 text-white disabled:cursor-not-allowed disabled:opacity-40"
-        >
-          Next
-        </button>
-      </div>
+          {/* Page Numbers */}
+          {visiblePages().map((page) => (
+            <li key={page}>
+              <button
+                type="button"
+                onClick={() => setCurrentPage(page)}
+                aria-current={currentPage === page ? "page" : undefined}
+                className={`flex h-9 w-9 items-center justify-center border text-sm font-medium transition
+            ${
+              currentPage === page
+                ? "border-blue-500 bg-blue-600 text-white shadow-md shadow-blue-900/30"
+                : "border-slate-700 bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white"
+            }`}
+              >
+                {page}
+              </button>
+            </li>
+          ))}
 
-      <p className="mt-3 text-center text-sm text-slate-400">
-        Page {currentPage} of {totalPages}
-        {" · "}
-        Showing {startIndex + 1}–
-        {Math.min(startIndex + ITEMS_PER_PAGE, symbolsIndex.length)}
-        {" of "}
-        {symbolsIndex.length} symbols
-      </p>
+          {/* Next */}
+          <li>
+            <button
+              type="button"
+              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+              disabled={currentPage >= totalPages}
+              className="flex h-9 items-center justify-center rounded-r-lg border border-slate-700 bg-slate-800 px-3 text-sm font-medium text-slate-300 transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-30"
+            >
+              Next
+            </button>
+          </li>
+        </ul>
+
+        {/* Items Per Page */}
+        <div className="flex items-center gap-3">
+          <label
+            htmlFor="itemsPerPage"
+            className="whitespace-nowrap text-sm text-slate-400"
+          >
+            Show:
+          </label>
+
+          <select
+            id="itemsPerPage"
+            value={itemsPerPage}
+            onChange={(e) => handleItemsPerPageChange(Number(e.target.value))}
+            className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30"
+          >
+            <option value={10}>10 per page</option>
+            <option value={25}>25 per page</option>
+            <option value={50}>50 per page</option>
+            <option value={100}>100 per page</option>
+          </select>
+        </div>
+      </nav>
     </main>
   );
 };
